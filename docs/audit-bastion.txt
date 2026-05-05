@@ -1,0 +1,43 @@
+**********************************************************************
+                          AUTHORIZED ACCESS ONLY
+
+  This system is restricted to authorized users for legitimate
+  business purposes. All activity is logged and monitored.
+  Unauthorized access or use is prohibited and may be subject to
+  criminal and civil penalties.
+**********************************************************************
+=== Hardening audit on ip-10-0-1-244 (tier: bastion) ===
+
+--- common baseline ---
+[PASS] common-harden completion marker present
+[PASS] SSH root login disabled
+[PASS] SSH password auth disabled
+[PASS] SSH empty passwords disabled
+[PASS] SSH MaxAuthTries is 3
+[PASS] SSH LoginGraceTime is 30
+[PASS] SSH banner configured
+[PASS] Banner file present
+[PASS] UFW is active
+[PASS] UFW default incoming is deny
+[PASS] UFW allows port 22
+[PASS] fail2ban service active
+[PASS] fail2ban service enabled
+[PASS] fail2ban sshd jail active
+[PASS] unattended-upgrades package installed
+[PASS] unattended-upgrades service enabled
+[PASS] ip_forward disabled
+[PASS] send_redirects disabled
+[PASS] accept_redirects disabled
+[PASS] accept_source_route disabled
+[PASS] log_martians enabled on primary interface
+[PASS] tcp_syncookies enabled
+[PASS] AppArmor service active
+
+--- bastion extras ---
+[PASS] bastion-extras completion marker present
+[PASS] tmux installed
+[PASS] swap is active
+[PASS] swap size is approximately 512MB
+[PASS] agent forwarding enabled
+
+=== 28 passed, 0 failed ===

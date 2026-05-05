@@ -13,8 +13,27 @@ while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
     sleep 2
 done
 
+# Wait for outbound internet via NAT Gateway. Private-subnet instances
+# can boot before the NAT path is fully ready, which causes apt-get
+# update to silently use stale indexes and breaks later package installs.
+echo "[common-harden] waiting for outbound connectivity..."
+for attempt in {1..60}; do
+    if curl -sf --max-time 5 https://archive.ubuntu.com/ubuntu/dists/jammy/Release > /dev/null 2>&1; then
+        echo "[common-harden] connectivity confirmed on attempt $attempt"
+        break
+    fi
+    if [[ $attempt -eq 60 ]]; then
+        echo "[common-harden] giving up after 60 attempts (~5 minutes)"
+        exit 1
+    fi
+    sleep 5
+done
+
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
+
+# --error-on=any turns apt-get update warnings into hard failures so
+# stale index files cannot silently break later package installs.
+apt-get update --error-on=any
 apt-get upgrade -y
 
 # SSH lockdown via drop-in config. Drop-ins survive package updates
@@ -63,13 +82,24 @@ systemctl enable --now unattended-upgrades
 cat > /etc/sysctl.d/99-hardening.conf <<'EOF'
 net.ipv4.ip_forward = 0
 net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
 net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
 net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
 net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
 net.ipv4.tcp_syncookies = 1
 EOF
 
-sysctl -p /etc/sysctl.d/99-hardening.conf
+sysctl --system
+
+# conf.default only affects interfaces created after the value is set.
+# Existing interfaces (ens5, lo) keep their old values. Force-apply
+# log_martians to every existing interface so audits pass.
+for iface in /proc/sys/net/ipv4/conf/*/log_martians; do
+    echo 1 > "$iface"
+done
 
 # AppArmor sanity check. Ubuntu enables it by default; the audit
 # script later confirms the service is running.

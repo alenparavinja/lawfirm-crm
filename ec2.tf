@@ -1,4 +1,9 @@
-# Resolve latest Ubuntu 22.04 LTS AMI from Canonical at apply time.
+# ec2.tf
+# Bastion (public) + App Server + DB Server (both private).
+# Hardening scripts in ./scripts/ are concatenated and passed via user_data.
+# user_data only runs on first boot, so changing the scripts forces a
+# replace on next apply (Terraform's default for user_data changes).
+
 data "aws_ami" "ubuntu_22_04" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
@@ -14,6 +19,11 @@ data "aws_ami" "ubuntu_22_04" {
   }
 }
 
+# Shared hardening baseline. Read once and reused across all three instances.
+locals {
+  common_script = file("${path.module}/scripts/common.sh")
+}
+
 # Bastion
 resource "aws_instance" "bastion" {
   ami                         = data.aws_ami.ubuntu_22_04.id
@@ -23,11 +33,7 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids      = [aws_security_group.bastion.id]
   associate_public_ip_address = true
 
-  user_data = <<-EOF
-    #!/bin/bash
-    apt-get update -y
-    apt-get upgrade -y
-  EOF
+  user_data = "${local.common_script}\n${file("${path.module}/scripts/bastion-extras.sh")}"
 
   root_block_device {
     volume_size           = 8
@@ -39,7 +45,6 @@ resource "aws_instance" "bastion" {
   tags = { Name = "lawfirm-crm-bastion" }
 }
 
-
 # App Server (Node.js + Nginx)
 resource "aws_instance" "app_server" {
   ami                         = data.aws_ami.ubuntu_22_04.id
@@ -49,11 +54,7 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids      = [aws_security_group.app_server.id]
   associate_public_ip_address = false
 
-  user_data = <<-EOF
-    #!/bin/bash
-    apt-get update -y
-    apt-get upgrade -y
-  EOF
+  user_data = "${local.common_script}\n${file("${path.module}/scripts/app-extras.sh")}"
 
   root_block_device {
     volume_size           = 10
@@ -65,7 +66,6 @@ resource "aws_instance" "app_server" {
   tags = { Name = "lawfirm-crm-app-server" }
 }
 
-
 # DB Server (MongoDB)
 # Larger root volume to accommodate database growth.
 resource "aws_instance" "db_server" {
@@ -76,11 +76,7 @@ resource "aws_instance" "db_server" {
   vpc_security_group_ids      = [aws_security_group.db_server.id]
   associate_public_ip_address = false
 
-  user_data = <<-EOF
-    #!/bin/bash
-    apt-get update -y
-    apt-get upgrade -y
-  EOF
+  user_data = "${local.common_script}\n${file("${path.module}/scripts/db-extras.sh")}"
 
   root_block_device {
     volume_size           = 20
