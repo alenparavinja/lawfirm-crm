@@ -76,6 +76,9 @@ resource "aws_instance" "db_server" {
   vpc_security_group_ids      = [aws_security_group.db_server.id]
   associate_public_ip_address = false
 
+  # Instance profile grants read access to the Mongo admin secret only.
+  iam_instance_profile = aws_iam_instance_profile.db_server.name
+
   user_data = "${local.common_script}\n${file("${path.module}/scripts/db-extras.sh")}"
 
   root_block_device {

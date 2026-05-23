@@ -15,6 +15,17 @@ export DEBIAN_FRONTEND=noninteractive
 # in Phase 3. Installing it here keeps Phase 3 free of OS-prep work.
 apt-get install -y gnupg
 
+# jq parses the JSON secret from Secrets Manager during the Mongo install.
+apt-get install -y jq
+
+# AWS CLI v2 fetches the Mongo admin credential from Secrets Manager via
+# the instance role. Not available in apt; installed from the official bundle.
+apt-get install -y unzip
+curl -sf "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
+rm -rf /tmp/awscliv2.zip /tmp/aws
+
 # 2 GB swap. MongoDB on a 1 GB instance needs a meaningful safety net
 # to avoid OOM kills when WiredTiger cache and the OS file cache compete.
 if [ ! -f /swapfile ]; then
