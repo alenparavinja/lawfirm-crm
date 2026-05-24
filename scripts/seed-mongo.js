@@ -4,10 +4,13 @@
 //
 // Usage:
 //   mongosh -u admin -p <password> --authenticationDatabase admin seed-mongo.js
+//
+// Staff passwords follow the pattern Password1!<FirstName> for dev use only.
+// Example: Maria Rodriguez -> Password1!Maria
+// Hashes were generated offline with bcrypt cost factor 10.
 
 const db = db.getSiblingDB('lawfirm');
 
-// Clean slate on each run so seeds are idempotent.
 db.staff.drop();
 db.clients.drop();
 db.cases.drop();
@@ -20,28 +23,26 @@ print('[seed] dropped existing collections');
 // ---- staff ----
 
 const staffData = [
-  { fullName: 'Maria Rodriguez', role: 'attorney', email: 'mrodriguez@lawfirm.com', barNumber: 'NY-2018-44521', active: true },
-  { fullName: 'James Chen', role: 'attorney', email: 'jchen@lawfirm.com', barNumber: 'NY-2015-33102', active: true },
-  { fullName: 'Sarah Kim', role: 'attorney', email: 'skim@lawfirm.com', barNumber: 'NY-2020-55789', active: true },
-  { fullName: 'David Okafor', role: 'paralegal', email: 'dokafor@lawfirm.com', barNumber: null, active: true },
-  { fullName: 'Ana Gutierrez', role: 'paralegal', email: 'agutierrez@lawfirm.com', barNumber: null, active: true },
-  { fullName: 'Michael Torres', role: 'admin', email: 'mtorres@lawfirm.com', barNumber: null, active: true },
-  { fullName: 'Linda Park', role: 'attorney', email: 'lpark@lawfirm.com', barNumber: 'NY-2012-22098', active: false }
+  { fullName: 'Maria Rodriguez', role: 'attorney',  email: 'mrodriguez@lawfirm.com', barNumber: 'NY-2018-44521', active: true,  passwordHash: '$2b$10$5CwiSyW/LgOg8u2ZgRBOnuLWJc20u.dsQVsl8h4e4v6YHmkmqfeLu' },
+  { fullName: 'James Chen',      role: 'attorney',  email: 'jchen@lawfirm.com',       barNumber: 'NY-2015-33102', active: true,  passwordHash: '$2b$10$GejVHaZyax/ciEo.h9R.COvmkjqkMbbt9yH2Y3LOxN9nx8D0aHQI.' },
+  { fullName: 'Sarah Kim',       role: 'attorney',  email: 'skim@lawfirm.com',        barNumber: 'NY-2020-55789', active: true,  passwordHash: '$2b$10$J0GsXiH3MWFWuBNv/6RWxeZRL901Hpuk.Hl1gSz6ediqPoSN08dTu' },
+  { fullName: 'David Okafor',    role: 'paralegal', email: 'dokafor@lawfirm.com',     barNumber: null,            active: true,  passwordHash: '$2b$10$GxKLfXrs51ugzzKITwLutOM65gA.CtF4B30Z.Klb/sj4670ROah4i' },
+  { fullName: 'Ana Gutierrez',   role: 'paralegal', email: 'agutierrez@lawfirm.com',  barNumber: null,            active: true,  passwordHash: '$2b$10$neBggUwj3ugB1CLMakQlcePcaP8QK8YoKS8wQXHDIZGXYukIXiPZ.' },
+  { fullName: 'Michael Torres',  role: 'admin',     email: 'mtorres@lawfirm.com',     barNumber: null,            active: true,  passwordHash: '$2b$10$7RN92S4qDA1LP.mqZx8wl.OxfxDqVWswz0d7Lmmpx4DJFuZ8e6v7O' },
+  { fullName: 'Linda Park',      role: 'attorney',  email: 'lpark@lawfirm.com',       barNumber: 'NY-2012-22098', active: false, passwordHash: '$2b$10$iUZdNky54vhNCQ6cHVugquhupLpgaImmy7kHb7qknneX.2bvIX.X6' },
 ];
 
 const staffResult = db.staff.insertMany(staffData);
 const staffIds = Object.values(staffResult.insertedIds);
 print(`[seed] inserted ${staffIds.length} staff members`);
 
-// Helper to pick a random element from an array.
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function pickDate(startYear, endYear) {
   const start = new Date(startYear, 0, 1).getTime();
-  const end = new Date(endYear, 11, 31).getTime();
+  const end   = new Date(endYear, 11, 31).getTime();
   return new Date(start + Math.random() * (end - start));
 }
 
-// Active attorneys and paralegals for assignment.
 const attorneys = staffIds.filter((_, i) => staffData[i].role === 'attorney' && staffData[i].active);
 const paralegals = staffIds.filter((_, i) => staffData[i].role === 'paralegal');
 
@@ -85,33 +86,36 @@ const lastNames = [
 
 const clientsData = [];
 for (let i = 0; i < 50; i++) {
-  const country = pick(countries);
-  const entryDate = pickDate(2005, 2024);
+  const entryDate   = pickDate(2005, 2024);
   const onboardDate = new Date(entryDate.getTime() + Math.random() * 365 * 24 * 60 * 60 * 1000 * 5);
-  clientsData.push({
-    fullName: `${pick(firstNames)} ${pick(lastNames)}`,
-    dateOfBirth: pickDate(1960, 2000),
-    countryOfOrigin: country,
-    aNumber: Math.random() > 0.3 ? `A${String(Math.floor(100000000 + Math.random() * 900000000))}` : null,
+  const client = {
+    fullName:                 `${pick(firstNames)} ${pick(lastNames)}`,
+    dateOfBirth:              pickDate(1960, 2000),
+    countryOfOrigin:          pick(countries),
     currentImmigrationStatus: pick(immigrationStatuses),
-    dateOfEntry: entryDate,
-    email: `client${i + 1}@example.com`,
-    phone: `(${212 + Math.floor(Math.random() * 788)}) ${String(Math.floor(1000000 + Math.random() * 9000000)).replace(/(\d{3})(\d{4})/, '$1-$2')}`,
-    mailingAddress: `${100 + i} Example St, New York, NY ${10001 + Math.floor(Math.random() * 99)}`,
-    dateOnboarded: onboardDate,
-    status: Math.random() > 0.15 ? 'active' : 'inactive'
-  });
+    dateOfEntry:              entryDate,
+    email:                    `client${i + 1}@example.com`,
+    phone:                    `(${212 + Math.floor(Math.random() * 788)}) ${String(Math.floor(1000000 + Math.random() * 9000000)).replace(/(\d{3})(\d{4})/, '$1-$2')}`,
+    mailingAddress:           `${100 + i} Example St, New York, NY ${10001 + Math.floor(Math.random() * 99)}`,
+    dateOnboarded:            onboardDate,
+    status:                   Math.random() > 0.15 ? 'active' : 'inactive',
+  };
+  if (Math.random() > 0.3) {
+    client.aNumber = `A${String(Math.floor(100000000 + Math.random() * 900000000))}`;
+  }
+  clientsData.push(client);
 }
 
 const clientResult = db.clients.insertMany(clientsData);
-const clientIds = Object.values(clientResult.insertedIds);
+const clientIds    = Object.values(clientResult.insertedIds);
 print(`[seed] inserted ${clientIds.length} clients`);
 
 // ---- cases ----
+// caseType values match the Mongoose enum exactly.
 
 const caseTypes = [
-  'family_based', 'employment_visa', 'asylum', 'naturalization',
-  'removal_defense', 'daca', 'student_visa', 'other'
+  'employment_visa', 'student_visa', 'asylum', 'green_card',
+  'naturalization', 'removal_defense', 'family_petition', 'other'
 ];
 
 const caseStages = [
@@ -119,42 +123,43 @@ const caseStages = [
   'interview_scheduled', 'approved', 'denied', 'appeal'
 ];
 
-const casesData = [];
-let caseCounter = 1;
+const casesData  = [];
+let caseCounter  = 1;
 for (let i = 0; i < clientIds.length; i++) {
   const numCases = 1 + Math.floor(Math.random() * 4);
   for (let j = 0; j < numCases; j++) {
-    const stage = pick(caseStages);
+    const stage    = pick(caseStages);
     const isClosed = stage === 'approved' || stage === 'denied';
     const openDate = pickDate(2020, 2025);
     casesData.push({
-      caseNumber: `${openDate.getFullYear()}-${String(caseCounter).padStart(4, '0')}`,
-      title: `${clientsData[i].fullName} - ${pick(caseTypes).replace(/_/g, ' ')}`,
-      clientId: clientIds[i],
+      caseNumber:         `${openDate.getFullYear()}-${String(caseCounter).padStart(4, '0')}`,
+      title:              `${clientsData[i].fullName} - ${pick(caseTypes).replace(/_/g, ' ')}`,
+      clientId:           clientIds[i],
       responsibleStaffId: pick(attorneys),
-      caseType: pick(caseTypes),
-      receiptNumber: Math.random() > 0.4 ? `MSC${String(Math.floor(2100000000 + Math.random() * 900000000))}` : null,
-      priorityDate: Math.random() > 0.5 ? pickDate(2019, 2025) : null,
-      filingDate: stage !== 'consultation' && stage !== 'preparing' ? pickDate(2021, 2025) : null,
-      currentStage: stage,
-      status: isClosed ? 'closed' : (Math.random() > 0.3 ? 'open' : 'pending'),
-      dateOpened: openDate,
-      dateClosed: isClosed ? new Date(openDate.getTime() + Math.random() * 365 * 2 * 24 * 60 * 60 * 1000) : null,
-      courtId: null
+      caseType:           pick(caseTypes),
+      receiptNumber:      Math.random() > 0.4 ? `MSC${String(Math.floor(2100000000 + Math.random() * 900000000))}` : null,
+      priorityDate:       Math.random() > 0.5 ? pickDate(2019, 2025) : null,
+      filingDate:         stage !== 'consultation' && stage !== 'preparing' ? pickDate(2021, 2025) : null,
+      currentStage:       stage,
+      status:             isClosed ? 'closed' : (Math.random() > 0.3 ? 'open' : 'on_hold'),
+      dateOpened:         openDate,
+      dateClosed:         isClosed ? new Date(openDate.getTime() + Math.random() * 365 * 2 * 24 * 60 * 60 * 1000) : null,
+      courtId:            null,
     });
     caseCounter++;
   }
 }
 
 const caseResult = db.cases.insertMany(casesData);
-const caseIds = Object.values(caseResult.insertedIds);
+const caseIds    = Object.values(caseResult.insertedIds);
 print(`[seed] inserted ${caseIds.length} cases`);
 
 // ---- documents ----
+// documentType values match the Mongoose enum exactly.
 
 const docTypes = [
-  'passport', 'visa', 'application_form', 'supporting_evidence',
-  'rfe_response', 'correspondence', 'court_filing', 'identity_document', 'other'
+  'court_filing', 'evidence', 'correspondence',
+  'identity', 'immigration_form', 'other'
 ];
 
 const docTitles = [
@@ -174,13 +179,13 @@ for (let i = 0; i < caseIds.length; i++) {
   const numDocs = 2 + Math.floor(Math.random() * 5);
   for (let j = 0; j < numDocs; j++) {
     documentsData.push({
-      title: pick(docTitles),
-      documentType: pick(docTypes),
-      caseId: caseIds[i],
-      uploadDate: pickDate(2021, 2025),
-      author: pick(staffData).fullName,
-      filePath: `/documents/case-${i + 1}/doc-${j + 1}.pdf`,
-      fileSizeBytes: Math.floor(50000 + Math.random() * 5000000)
+      title:         pick(docTitles),
+      documentType:  pick(docTypes),
+      caseId:        caseIds[i],
+      uploadDate:    pickDate(2021, 2025),
+      author:        pick(staffData).fullName,
+      filePath:      `/documents/case-${i + 1}/doc-${j + 1}.pdf`,
+      fileSizeBytes: Math.floor(50000 + Math.random() * 5000000),
     });
   }
 }
@@ -218,10 +223,10 @@ for (let i = 0; i < caseIds.length; i++) {
   const numNotes = 1 + Math.floor(Math.random() * 4);
   for (let j = 0; j < numNotes; j++) {
     notesData.push({
-      caseId: caseIds[i],
+      caseId:        caseIds[i],
       authorStaffId: pick(staffIds),
-      body: pick(noteTemplates),
-      createdAt: pickDate(2021, 2025)
+      body:          pick(noteTemplates),
+      createdAt:     pickDate(2021, 2025),
     });
   }
 }
@@ -230,6 +235,7 @@ const noteResult = db.notes.insertMany(notesData);
 print(`[seed] inserted ${Object.values(noteResult.insertedIds).length} notes`);
 
 // ---- tasks ----
+// priority and status values match the Mongoose enum exactly.
 
 const taskTitles = [
   'Gather supporting documents from client',
@@ -254,20 +260,15 @@ const taskTitles = [
   'Follow up on FOIA request status'
 ];
 
-const priorities = ['low', 'normal', 'high'];
-const taskStatuses = ['open', 'in_progress', 'done'];
-
 const tasksData = [];
 for (let i = 0; i < 80; i++) {
-  const hasCase = Math.random() > 0.2;
-  const status = pick(taskStatuses);
   tasksData.push({
-    title: pick(taskTitles),
-    caseId: hasCase ? pick(caseIds) : null,
+    title:           pick(taskTitles),
+    caseId:          pick(caseIds),
     assignedStaffId: pick([...attorneys, ...paralegals]),
-    dueDate: pickDate(2025, 2026),
-    priority: pick(priorities),
-    status: status
+    dueDate:         pickDate(2025, 2026),
+    priority:        pick(['low', 'medium', 'high']),
+    status:          pick(['pending', 'in_progress', 'complete']),
   });
 }
 
@@ -276,8 +277,10 @@ print(`[seed] inserted ${Object.values(taskResult.insertedIds).length} tasks`);
 
 // ---- indexes ----
 
+db.staff.createIndex({ email: 1 }, { unique: true });
 db.clients.createIndex({ status: 1 });
 db.clients.createIndex({ countryOfOrigin: 1 });
+db.clients.createIndex({ aNumber: 1 }, { unique: true, sparse: true });
 db.cases.createIndex({ clientId: 1 });
 db.cases.createIndex({ responsibleStaffId: 1 });
 db.cases.createIndex({ status: 1, currentStage: 1 });
@@ -291,8 +294,6 @@ db.tasks.createIndex({ status: 1 });
 db.tasks.createIndex({ caseId: 1 });
 
 print('[seed] created indexes');
-
-// ---- summary ----
 
 print('\n--- seed summary ---');
 print(`staff:     ${db.staff.countDocuments()}`);

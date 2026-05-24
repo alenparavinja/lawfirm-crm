@@ -30,7 +30,11 @@ ADMIN_PASS=$(echo "$SECRET_JSON" | jq -r .password)
 # Add the MongoDB official apt repository. The vendor repo carries current
 # releases; Ubuntu's bundled package is several major versions behind.
 curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGO_VERSION}.asc" \
-    | gpg --dearmor -o /usr/share/keyrings/mongodb-server-${MONGO_VERSION}.gpg
+    -o /tmp/mongodb-server-${MONGO_VERSION}.asc
+rm -f /usr/share/keyrings/mongodb-server-${MONGO_VERSION}.gpg
+gpg --batch --dearmor \
+    -o /usr/share/keyrings/mongodb-server-${MONGO_VERSION}.gpg \
+    /tmp/mongodb-server-${MONGO_VERSION}.asc
 
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${MONGO_VERSION}.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/${MONGO_VERSION} multiverse" \
     > /etc/apt/sources.list.d/mongodb-org-${MONGO_VERSION}.list
@@ -87,6 +91,7 @@ done
 
 echo "[install-mongo] creating admin user"
 mongosh --quiet admin --eval "
+db.dropUser('${ADMIN_USER}');
 db.createUser({
   user: '${ADMIN_USER}',
   pwd: '${ADMIN_PASS}',
@@ -111,6 +116,35 @@ echo "[install-mongo] verifying authenticated login"
 mongosh --quiet \
     -u "$ADMIN_USER" -p "$ADMIN_PASS" --authenticationDatabase admin \
     --eval 'db.adminCommand({ listDatabases: 1 }).databases.map(d => d.name)'
+
+# ---- Create app user ----
+# Separate MongoDB user with readWrite on lawfirm only. Created here so
+# the app server never needs the admin credential at any point.
+
+echo "[install-mongo] creating app user"
+
+APP_SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id "lawfirm-crm/mongo-app" --region "$REGION" \
+    --query SecretString --output text)
+APP_USER=$(echo "$APP_SECRET_JSON" | jq -r .username)
+APP_PASS=$(echo "$APP_SECRET_JSON" | jq -r .password)
+
+# Drop first so re-runs are idempotent.
+mongosh --quiet \
+    -u "$ADMIN_USER" -p "$ADMIN_PASS" --authenticationDatabase admin \
+    --eval "db.getSiblingDB('lawfirm').dropUser('${APP_USER}');" 2>/dev/null || true
+
+mongosh --quiet \
+    -u "$ADMIN_USER" -p "$ADMIN_PASS" --authenticationDatabase admin \
+    --eval "
+db.getSiblingDB('lawfirm').createUser({
+  user: '${APP_USER}',
+  pwd: '${APP_PASS}',
+  roles: [{ role: 'readWrite', db: 'lawfirm' }]
+});
+"
+
+echo "[install-mongo] app user created"
 
 echo "install-mongo completed at $(date -Iseconds)" > /var/log/install-mongo.complete
 echo "[install-mongo] finished at $(date -Iseconds)"

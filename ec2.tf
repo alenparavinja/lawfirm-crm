@@ -54,6 +54,8 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids      = [aws_security_group.app_server.id]
   associate_public_ip_address = false
 
+  iam_instance_profile        = aws_iam_instance_profile.app_server.name
+
   user_data = "${local.common_script}\n${file("${path.module}/scripts/app-extras.sh")}"
 
   root_block_device {
