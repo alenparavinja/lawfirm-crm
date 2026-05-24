@@ -51,13 +51,14 @@ date, filing date, current stage, overall status, date opened, and date
 closed when applicable. An optional court reference links the case to a
 jurisdiction when it is in proceedings.
 
-Case type values: family_based, employment_visa, asylum, naturalization,
-removal_defense, daca, student_visa, other.
+Case type values: employment_visa, student_visa, asylum, green_card,
+naturalization, removal_defense, family_petition, other.
 
 Stage values: consultation, preparing, filed, rfe_received, interview_scheduled,
-approved, denied, appeal.
+approved, denied, appeal. These are the conventional vocabulary the application
+uses; the field is stored as a free string and is not enforced by a schema enum.
 
-Status values: open, pending, closed.
+Status values: open, closed, on_hold.
 
 ### documents
 
