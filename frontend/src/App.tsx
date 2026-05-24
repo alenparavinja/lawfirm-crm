@@ -1,0 +1,1 @@
+// Intentionally unused. Router is bootstrapped in main.tsx via RouterProvider.
