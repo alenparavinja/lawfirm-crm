@@ -41,7 +41,7 @@ The project was built in phases, each a self-contained piece of the stack. Phase
 
 ## Running the project
 
-The project assumes Terraform and the AWS CLI are installed and configured, and that an AWS Key Pair exists in the target region. Copy `terraform.tfvars.example` to `terraform.tfvars` and fill in the operator IP and key pair name.
+The project assumes Terraform and the AWS CLI are installed and configured, and that an AWS Key Pair exists in the target region. Copy `terraform.tfvars.example` to `terraform.tfvars` and fill in the operator IP and key pair name. Step-by-step commands for the full stand-up sequence, including troubleshooting for common failures, are in docs/RUNBOOK.md.
 
 ```
 terraform init
