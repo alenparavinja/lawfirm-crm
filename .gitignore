@@ -30,3 +30,4 @@ frontend/dist/
 
 # API
 app/node_modules/
+docs/audit-*.txt
