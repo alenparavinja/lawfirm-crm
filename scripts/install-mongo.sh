@@ -91,7 +91,7 @@ done
 
 echo "[install-mongo] creating admin user"
 mongosh --quiet admin --eval "
-db.dropUser('${ADMIN_USER}');
+try { db.dropUser('${ADMIN_USER}'); } catch (e) {}
 db.createUser({
   user: '${ADMIN_USER}',
   pwd: '${ADMIN_PASS}',
