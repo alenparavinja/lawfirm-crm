@@ -9,6 +9,7 @@ export interface StaffMember {
   email: string;
   barNumber?: string;
   active: boolean;
+  biography?: string;
 }
 
 export interface StaffFilters {

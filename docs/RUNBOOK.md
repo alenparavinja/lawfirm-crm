@@ -97,6 +97,14 @@ scp -qr app/* app-server:/opt/lawfirm-crm/
 scp -q scripts/start.sh app-server:/opt/lawfirm-crm/
 ```
 
+Confirm `nginx.conf` arrived as a file, not a directory. The compose file bind-mounts `app/nginx/nginx.conf` into the Nginx container. If that path is missing on the host when compose runs, Docker creates an empty directory there and the container fails to start. The config must sit at `app/nginx/nginx.conf` in the repo, not at `app/nginx.conf`.
+
+```
+ssh -q app-server 'file /opt/lawfirm-crm/nginx/nginx.conf'
+```
+
+Expected: `ASCII text` or similar. If it reports `directory`, remove it with `sudo rmdir`, fix the repo path, and re-copy.
+
 Run the start script on the App Server. It expects `MONGO_HOST` in the environment so it can write the `MONGO_URI` into the `.env` file, fetching the password from Secrets Manager via the App Server's IAM role.
 
 ```
@@ -145,15 +153,16 @@ Expected: a JSON response with a JWT token. If you get one, the full stack is wo
 
 ## Run the frontend locally
 
-The frontend runs in dev mode on the local Mac, talking to the App Server through an SSH tunnel.
+The frontend runs in dev mode on the Mac. The browser loads the app from Vite on port 5173. API calls use a relative `/api` path, which Vite's dev proxy (see `vite.config.ts`) forwards to `localhost:3001`. An SSH tunnel maps local 3001 to the App Server's Nginx on port 80, so the full path is browser to Vite to tunnel to Nginx to the API.
 
-In one terminal, open the tunnel (this needs to stay running):
+Port 3001 is the API tunnel and is not meant to be opened in a browser. Port 5173 is the app. Opening `localhost:3001` directly returns "Cannot GET /" because that hits the API, which has no homepage route. Note that `/health` is not proxied by Vite, so it is only reachable by curling the tunnel directly at `127.0.0.1:3001/health`, not from the browser.
+
+In one terminal, kill any stale tunnel process holding the port, then open a fresh tunnel (this needs to stay running):
 
 ```
-ssh -q -L 5173:localhost:80 app-server
+lsof -ti :3001 | xargs kill -9 2>/dev/null
+ssh -q -N -L 127.0.0.1:3001:localhost:80 app-server
 ```
-
-Leave that terminal open. The tunnel forwards your laptop's port 5173 through the Bastion to the App Server's port 80.
 
 In another terminal, install dependencies and start the dev server:
 
@@ -187,10 +196,16 @@ If the audit script reports `tier: unknown`, the hardening script halted before 
 
 If `install-mongo.sh` fails at the admin user bootstrap step, check that the AWS CLI is installed on the DB Server (`aws --version`) and that the IAM instance profile is attached (`aws sts get-caller-identity` should return an assumed-role ARN).
 
+If `install-mongo.sh` aborts at the create-admin step with "User 'admin@admin' not found" on an otherwise clean apply, the admin bootstrap tried to drop a user that does not exist yet. The drop runs before the create for idempotency on re-runs, but on a fresh data dir there is nothing to drop, and an unguarded drop aborts the whole script under `set -e`. The drop is now guarded so a missing user is tolerated. If this resurfaces, confirm the guard is still in place on the dropUser line.
+
+If `docker compose up` fails with "not a directory: Are you trying to mount a directory onto a file" naming `nginx.conf`, the host path `app/nginx/nginx.conf` was missing when compose ran, so Docker created an empty directory there. Remove it with `sudo rmdir /opt/lawfirm-crm/nginx/nginx.conf`, confirm the real config exists at `app/nginx/nginx.conf` in the repo (not one level up at `app/nginx.conf`), re-copy it, and bring the stack up again.
+
 If `nc` from the App Server to port 27017 times out, check three things in order: the Security Group on the DB Server allows 27017 from the App Server SG; UFW on the DB Server allows 27017 from the VPC CIDR; `mongod` is bound to the private IP (not just localhost) in `/etc/mongod.conf`.
 
 If `docker compose up` fails with a buildx permission error, run `sudo chown -R ubuntu:ubuntu /home/ubuntu/.docker` and retry.
 
-If the SSH tunnel command appears to succeed but `curl http://localhost:5173` hangs, a stale tunnel process is holding the port. Kill it with `lsof -ti :5173 | xargs kill -9` and reopen the tunnel.
+If the SSH tunnel command appears to succeed but `curl http://127.0.0.1:3001/health` hangs, a stale tunnel process is holding the port. Kill it with `lsof -ti :3001 | xargs kill -9` and reopen the tunnel. The bind succeeds silently even when the port is taken, so the hang is the only symptom.
+
+If the browser shows "Cannot GET /", the API port was opened directly instead of the app. The app is on `localhost:5173` (Vite); `localhost:3001` is the API tunnel and has no homepage route. Open 5173 instead.
 
 If the frontend loads but API calls fail with 401, the JWT in localStorage is stale. Log out and log back in, or clear `localStorage` in the browser dev tools.

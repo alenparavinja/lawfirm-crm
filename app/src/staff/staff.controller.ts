@@ -30,7 +30,7 @@ export const listStaff = async (req: Request, res: Response, next: NextFunction)
 
 export const getStaffMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const member = await Staff.findById(req.params.id).select('-passwordHash');
+    const member = await Staff.findById(req.params.id).select('-passwordHash +biography');
     if (!member) { res.status(404).json({ error: 'Staff member not found' }); return; }
     res.json(member);
   } catch (err) {

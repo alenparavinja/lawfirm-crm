@@ -3,6 +3,7 @@ import { useStaff } from '@/hooks/useStaff';
 import type { StaffFilters } from '@/hooks/useStaff';
 import StaffCard from '@/components/staff/StaffCard';
 import StaffModal from '@/components/staff/StaffModal';
+import { useStaffMember } from '@/hooks/useStaffMember';
 import type { StaffMember } from '@/hooks/useStaff';
 import {
   Select,
@@ -16,6 +17,7 @@ export default function StaffPage() {
   const [filters, setFilters] = useState<StaffFilters>({ page: 1 });
   const { data, isLoading, isError } = useStaff(filters);
   const [selected, setSelected] = useState<StaffMember | null>(null);
+  const { data: detail } = useStaffMember(selected?._id ?? null);
 
   function set(key: keyof StaffFilters, value: string) {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
@@ -95,7 +97,7 @@ export default function StaffPage() {
           ))}
         </div>
       )}
-      <StaffModal member={selected} onClose={() => setSelected(null)} />
+      <StaffModal member={detail ?? selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

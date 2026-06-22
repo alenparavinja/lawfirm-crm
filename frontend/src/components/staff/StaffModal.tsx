@@ -80,10 +80,13 @@ export default function StaffModal({ member, onClose }: Props) {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Biography
             </h3>
-            {/* TODO: wire to staff.biography field once added to the database */}
-            <p className="text-sm text-muted-foreground italic">
-              Biography not yet available.
-            </p>
+            {member.biography ? (
+              <p className="whitespace-pre-line text-sm">{member.biography}</p>
+            ) : (
+              <p className="text-sm italic text-muted-foreground">
+                No biography on file.
+              </p>
+            )}
           </section>
         </div>
       </DialogContent>
