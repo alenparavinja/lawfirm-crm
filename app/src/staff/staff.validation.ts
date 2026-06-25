@@ -5,6 +5,7 @@ export const createStaffRules = [
   body('role').isIn(['attorney', 'paralegal', 'admin']),
   body('email').isEmail().normalizeEmail(),
   body('barNumber').optional().trim().notEmpty(),
+  body('biography').optional().trim(),
   body('active').optional().isBoolean(),
 ];
 
@@ -13,6 +14,7 @@ export const updateStaffRules = [
   body('role').optional().isIn(['attorney', 'paralegal', 'admin']),
   body('email').optional().isEmail().normalizeEmail(),
   body('barNumber').optional().trim().notEmpty(),
+  body('biography').optional().trim(),
   body('active').optional().isBoolean(),
 ];
 

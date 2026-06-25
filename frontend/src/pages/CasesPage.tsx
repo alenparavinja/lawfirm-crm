@@ -4,6 +4,9 @@ import type { CaseFilters } from '@/hooks/useCases';
 import CaseCard from '@/components/cases/CaseCard';
 import CaseFiltersBar from '@/components/cases/CaseFilters';
 import type { Case } from '@/types';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import CaseFormDialog from '@/components/cases/CaseFormDialog';
 
 function paramsToFilters(params: URLSearchParams): CaseFilters {
   return {
@@ -28,6 +31,7 @@ export default function CasesPage() {
   const filters = paramsToFilters(searchParams);
   const { data, isLoading, isError } = useCases(filters);
   const navigate = useNavigate();
+  const [formOpen, setFormOpen] = useState(false);
 
   const totalPages = data ? Math.ceil(data.total / 12) : 0;
 
@@ -41,13 +45,16 @@ export default function CasesPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold">Cases</h1>
-        {data && (
-          <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? 'case' : 'cases'}
-          </p>
-        )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Cases</h1>
+          {data && (
+            <p className="text-sm text-muted-foreground">
+              {data.total} {data.total === 1 ? 'case' : 'cases'}
+            </p>
+          )}
+        </div>
+        <Button onClick={() => setFormOpen(true)}>Add case</Button>
       </div>
 
       <CaseFiltersBar filters={filters} onChange={handleFilterChange} />
@@ -95,6 +102,7 @@ export default function CasesPage() {
           </button>
         </div>
       )}
+      <CaseFormDialog open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 }

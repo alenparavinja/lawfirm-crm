@@ -12,12 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import StaffFormDialog from '@/components/staff/StaffFormDialog';
 
 export default function StaffPage() {
   const [filters, setFilters] = useState<StaffFilters>({ page: 1 });
   const { data, isLoading, isError } = useStaff(filters);
   const [selected, setSelected] = useState<StaffMember | null>(null);
   const { data: detail } = useStaffMember(selected?._id ?? null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<StaffMember | null>(null);
 
   function set(key: keyof StaffFilters, value: string) {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
@@ -31,13 +35,16 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold">Staff</h1>
-        {data && (
-          <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? 'member' : 'members'}
-          </p>
-        )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Staff</h1>
+          {data && (
+            <p className="text-sm text-muted-foreground">
+              {data.total} {data.total === 1 ? 'member' : 'members'}
+            </p>
+          )}
+        </div>
+        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>Add staff</Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -97,7 +104,16 @@ export default function StaffPage() {
           ))}
         </div>
       )}
-      <StaffModal member={detail ?? selected} onClose={() => setSelected(null)} />
+      <StaffModal
+        member={detail ?? selected}
+        onClose={() => setSelected(null)}
+        onEdit={(m) => { setSelected(null); setEditing(m); setFormOpen(true); }}
+      />
+      <StaffFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        member={editing ?? undefined}
+      />
     </div>
   );
 }

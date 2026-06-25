@@ -1,7 +1,6 @@
 import { body, query } from 'express-validator';
 
 export const createNoteRules = [
-  body('authorStaffId').isMongoId(),
   body('body').trim().notEmpty(),
 ];
 

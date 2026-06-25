@@ -5,7 +5,7 @@ import { Task } from './task.model';
 const PAGE_DEFAULT  = 1;
 const LIMIT_DEFAULT = 20;
 
-const POPULATE = { path: 'assignedStaffId', select: 'fullName role -_id' };
+const POPULATE = { path: 'assignedStaffId', select: 'fullName role' };
 
 export const listTasks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

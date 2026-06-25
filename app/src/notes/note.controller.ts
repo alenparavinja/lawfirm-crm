@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import { Note } from './note.model';
+import { AuthRequest } from '../auth/auth.middleware';
 
 const PAGE_DEFAULT  = 1;
 const LIMIT_DEFAULT = 20;
@@ -36,12 +37,16 @@ export const getNote = async (req: Request, res: Response, next: NextFunction): 
   }
 };
 
-export const createNote = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const createNote = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) { res.status(400).json({ errors: errors.array() }); return; }
 
-    const note = await Note.create({ ...req.body, caseId: req.params.caseId });
+    const note = await Note.create({
+      body: req.body.body,
+      authorStaffId: req.staffId,   // server-asserted, not from the client
+      caseId: req.params.caseId,
+    });
     res.status(201).json(await note.populate(POPULATE));
   } catch (err) {
     next(err);
