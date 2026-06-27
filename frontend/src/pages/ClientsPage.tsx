@@ -4,7 +4,7 @@ import { useClients } from '@/hooks/useClients';
 import type { ClientFilters } from '@/hooks/useClients';
 import ClientCard from '@/components/clients/ClientCard';
 import ClientFiltersBar from '@/components/clients/ClientFilters';
-import ClientSheet from '@/components/clients/ClientSheet';
+import ClientDetailDialog from '@/components/clients/ClientDetailDialog';
 import type { Client } from '@/types';
 import { Button } from '@/components/ui/button';
 import ClientFormDialog from '@/components/clients/ClientFormDialog';
@@ -30,11 +30,9 @@ function filtersToParams(filters: ClientFilters): Record<string, string> {
 export default function ClientsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState<Client | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Client | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const filters = paramsToFilters(searchParams);
   const { data, isLoading, isError } = useClients(filters);
-  
 
   const totalPages = data ? Math.ceil(data.total / 12) : 0;
 
@@ -53,7 +51,7 @@ export default function ClientsPage() {
             </p>
           )}
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+        <Button onClick={() => setCreateOpen(true)}>
           Add client
         </Button>
       </div>
@@ -104,16 +102,14 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <ClientSheet
+      <ClientDetailDialog
         client={selected}
         onClose={() => setSelected(null)}
-        onEdit={(c) => { setSelected(null); setEditing(c); setFormOpen(true); }}
       />
 
       <ClientFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        client={editing ?? undefined}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
       />
     </div>
   );

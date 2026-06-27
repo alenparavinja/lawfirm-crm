@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useStaff } from '@/hooks/useStaff';
 import type { StaffFilters } from '@/hooks/useStaff';
 import StaffCard from '@/components/staff/StaffCard';
-import StaffModal from '@/components/staff/StaffModal';
-import { useStaffMember } from '@/hooks/useStaffMember';
+import StaffDetailDialog from '@/components/staff/StaffDetailDialog';
 import type { StaffMember } from '@/hooks/useStaff';
 import {
   Select,
@@ -19,9 +18,7 @@ export default function StaffPage() {
   const [filters, setFilters] = useState<StaffFilters>({ page: 1 });
   const { data, isLoading, isError } = useStaff(filters);
   const [selected, setSelected] = useState<StaffMember | null>(null);
-  const { data: detail } = useStaffMember(selected?._id ?? null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   function set(key: keyof StaffFilters, value: string) {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
@@ -44,7 +41,7 @@ export default function StaffPage() {
             </p>
           )}
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>Add staff</Button>
+        <Button onClick={() => setCreateOpen(true)}>Add staff</Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -104,15 +101,15 @@ export default function StaffPage() {
           ))}
         </div>
       )}
-      <StaffModal
-        member={detail ?? selected}
+
+      <StaffDetailDialog
+        member={selected}
         onClose={() => setSelected(null)}
-        onEdit={(m) => { setSelected(null); setEditing(m); setFormOpen(true); }}
       />
+
       <StaffFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        member={editing ?? undefined}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
       />
     </div>
   );
