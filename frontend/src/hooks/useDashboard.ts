@@ -1,9 +1,15 @@
 import { useQueries } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Case, Note, PaginatedResponse } from '@/types';
+import type { Case, Note, Task, PaginatedResponse } from '@/types';
 
-// All dashboard data in one hook. Six requests fire in parallel.
+// All dashboard data in one hook. Requests fire in parallel.
 // staleTime inherited from queryClient defaults (5 min).
+//
+// Pending tasks are defined as pending plus in_progress (everything not
+// complete). The API filters by a single status value, so the count is two
+// queries summed, and the upcoming-tasks strip fetches by due date and drops
+// complete client-side. Both halves use the same definition so the count and
+// the list cannot disagree.
 export function useDashboard() {
   const results = useQueries({
     queries: [
@@ -22,7 +28,7 @@ export function useDashboard() {
             .then((r) => r.data.total),
       },
       {
-        queryKey: ['cases', 'pending-count'],
+        queryKey: ['cases', 'on-hold-count'],
         queryFn: () =>
           api
             .get<PaginatedResponse<unknown>>('/cases', { params: { status: 'on_hold', limit: 1 } })
@@ -43,16 +49,41 @@ export function useDashboard() {
             .then((r) => r.data.total),
       },
       {
+        queryKey: ['tasks', 'in-progress-count'],
+        queryFn: () =>
+          api
+            .get<PaginatedResponse<unknown>>('/tasks', { params: { status: 'in_progress', limit: 1 } })
+            .then((r) => r.data.total),
+      },
+      {
         queryKey: ['notes', 'recent'],
         queryFn: () =>
           api
             .get<PaginatedResponse<Note>>('/notes', { params: { limit: 8 } })
             .then((r) => r.data.data),
       },
+      {
+        // Fetch a page sorted by due date and drop complete below. Pull more
+        // than the strip shows so filtering out complete still leaves enough.
+        queryKey: ['tasks', 'upcoming'],
+        queryFn: () =>
+          api
+            .get<PaginatedResponse<Task>>('/tasks', { params: { limit: 25 } })
+            .then((r) => r.data.data),
+      },
     ],
   });
 
-  const [activeClients, openCases, pendingCases, allCases, pendingTasks, recentNotes] = results;
+  const [
+    activeClients,
+    openCases,
+    onHoldCases,
+    allCases,
+    pendingTaskCount,
+    inProgressTaskCount,
+    recentNotes,
+    upcomingTasksRaw,
+  ] = results;
 
   const isLoading = results.some((r) => r.isLoading);
   const isError = results.some((r) => r.isError);
@@ -77,14 +108,21 @@ export function useDashboard() {
       ).map(([type, count]) => ({ type, count }))
     : [];
 
+  // Not-complete tasks, soonest due first, capped for the strip. The endpoint
+  // already sorts by due date ascending; the filter just removes complete.
+  const upcomingTasks = (upcomingTasksRaw.data ?? [])
+    .filter((t) => t.status !== 'complete')
+    .slice(0, 6);
+
   return {
     isLoading,
     isError,
     activeClients: activeClients.data ?? 0,
     openCases: openCases.data ?? 0,
-    pendingCases: pendingCases.data ?? 0,
-    pendingTasks: pendingTasks.data ?? 0,
+    onHoldCases: onHoldCases.data ?? 0,
+    pendingTasks: (pendingTaskCount.data ?? 0) + (inProgressTaskCount.data ?? 0),
     recentNotes: recentNotes.data ?? [],
+    upcomingTasks,
     stageDistribution,
     typeDistribution,
   };

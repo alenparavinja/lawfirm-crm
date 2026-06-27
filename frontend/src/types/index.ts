@@ -36,7 +36,7 @@ caseType:
   | 'removal_defense'
   | 'family_petition'
   | 'other';
-  status: 'open' | 'pending' | 'closed';
+  status: 'open' | 'on_hold' | 'closed';
   dateOpened: string;
   dateClosed?: string;
   receiptNumber?: string | null;
@@ -67,8 +67,8 @@ export interface Task {
   caseId?: string;
   assignedStaffId: StaffRef;
   dueDate: string;
-  priority: 'low' | 'normal' | 'high' | 'medium';
-  status: 'open' | 'in_progress' | 'done' | 'pending' | 'complete';
+  priority: 'low' | 'medium' | 'high';
+  status: 'pending' | 'in_progress' | 'complete';
 }
 
 export interface PaginatedResponse<T> {

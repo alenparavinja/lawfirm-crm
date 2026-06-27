@@ -88,9 +88,18 @@ assigned staff member and optionally a case.
 Fields: title, optional case reference, assigned staff reference, due date,
 priority, and status.
 
-Priority values: low, normal, high.
+Priority values: low, medium, high.
 
-Status values: open, in_progress, done.
+Status values: pending, in_progress, complete.
+
+These values were reconciled to match the express-validator rules in
+app/src/tasks/task.validation.ts, which is the source of truth the API
+enforces on write. An earlier revision of this document listed normal,
+open, and done, which never matched the validator or the seeded data.
+The values are deliberately left as the validator defines them rather
+than renamed to more conventional task vocabulary, since renaming would
+touch the validator, schema, seed, and frontend and require a reseed,
+which is not warranted for a proof of concept.
 
 ## Tier 2
 

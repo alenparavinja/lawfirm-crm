@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useCase } from '@/hooks/useCase';
 import { useCaseNotes } from '@/hooks/useCaseNotes';
 import { useCaseTasks } from '@/hooks/useCaseTasks';
@@ -123,7 +123,6 @@ function NoteRow({ note, caseId }: { note: Note; caseId: string }) {
 const PRIORITY_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'> = {
   high:   'destructive',
   medium: 'default',
-  normal: 'default',
   low:    'secondary',
 };
 
@@ -179,6 +178,11 @@ export default function CaseDetailPage() {
   const { data: notes = [] } = useCaseNotes(id!);
   const { data: tasks = [] } = useCaseTasks(id!);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab = ['details', 'notes', 'tasks'].includes(tabParam ?? '')
+    ? (tabParam as string)
+    : 'details';
   const fromSearch = (location.state as { from?: string })?.from ?? '';
   const { toast } = useToast();
   const del = useDeleteCase();
@@ -302,7 +306,7 @@ export default function CaseDetailPage() {
 
       <Separator />
 
-      <Tabs defaultValue="details">
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="notes">

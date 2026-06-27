@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -66,15 +66,15 @@ export default function ClientSheet({ client, onClose, onEdit }: Props) {
     : null;
 
   return (
-    <Sheet open={!!client} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent aria-describedby={undefined} className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="mb-6">
+    <Dialog open={!!client} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="mb-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
               {client.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <SheetTitle>{client.fullName}</SheetTitle>
+              <DialogTitle>{client.fullName}</DialogTitle>
               <Badge
                 variant={client.status === 'active' ? 'default' : 'secondary'}
                 className="mt-1"
@@ -83,7 +83,7 @@ export default function ClientSheet({ client, onClose, onEdit }: Props) {
               </Badge>
             </div>
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
         <div className="space-y-6">
           <section className="space-y-3">
@@ -140,7 +140,7 @@ export default function ClientSheet({ client, onClose, onEdit }: Props) {
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
